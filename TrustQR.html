@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Instant Attendance Scanner</title>
+  <!-- Rock-solid & Fast CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
+  <style>
+    :root {
+      --bg: #000;
+      --card-bg: #18181b;
+      --primary: #6366f1;
+      --text: #f4f4f5;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 15px;
+      overflow: hidden;
+    }
+    
+    .scanner-card {
+      width: 100%;
+      max-width: 380px;
+      background: var(--card-bg);
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      text-align: center;
+    }
+    
+    h3 {
+      margin-bottom: 15px;
+      font-size: 1.2rem;
+    }
+    
+    #reader {
+      width: 100% !important;
+      border-radius: 16px !important;
+      overflow: hidden !important;
+      background: #000;
+      border: none !important;
+    }
+    
+    #reader video {
+      object-fit: cover !important;
+      border-radius: 16px !important;
+    }
+    
+    #reader__dashboard,
+    #reader img,
+    #reader__header_container {
+      display: none !important;
+    }
+    
+    .btn-start {
+      margin-top: 15px;
+      width: 100%;
+      padding: 14px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 14px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    
+    .error-msg {
+      color: #ef4444;
+      font-size: 0.85rem;
+      margin-top: 10px;
+      display: none;
+      word-break: break-all;
+    }
+  </style>
+</head>
+
+<body>
+  
+  <div class="scanner-card">
+    <h3>📷 Classroom Scanner</h3>
+    <div id="reader"></div>
+    <div id="err-box" class="error-msg"></div>
+    <button class="btn-start" id="start-btn" onclick="startScanner()">Start Camera</button>
+  </div>
+  
+  <script>
+    function startScanner() {
+      document.getElementById('start-btn').style.display = 'none';
+      
+      const html5QrCode = new Html5Qrcode("reader");
+      
+      html5QrCode.start({ facingMode: "environment" }, { fps: 15, qrbox: { width: 230, height: 230 } },
+        (decodedText) => {
+          if (navigator.vibrate) navigator.vibrate(200);
+          html5QrCode.stop().then(() => {
+            window.location.href = decodedText;
+          }).catch(() => {
+            window.location.href = decodedText;
+          });
+        },
+        (errorMessage) => {
+          // Frame scan errors ignore karein
+        }
+      ).catch(err => {
+        // Agar back camera na chale toh front try karein
+        html5QrCode.start({ facingMode: "user" }, { fps: 15, qrbox: { width: 230, height: 230 } },
+          (decodedText) => {
+            window.location.href = decodedText;
+          }
+        ).catch(error => {
+          const box = document.getElementById('err-box');
+          box.style.display = 'block';
+          box.innerText = "Error: " + error;
+          document.getElementById('start-btn').style.display = 'block';
+        });
+      });
+    }
+  </script>
+</body>
+
+</html>
