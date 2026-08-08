@@ -1,139 +1,278 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Instant Attendance Scanner</title>
-  <!-- Rock-solid & Fast CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
-  <style>
-    :root {
-      --bg: #000;
-      --card-bg: #18181b;
-      --primary: #6366f1;
-      --text: #f4f4f5;
-    }
-    
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
-    
-    body {
-      background-color: var(--bg);
-      color: var(--text);
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 15px;
-      overflow: hidden;
-    }
-    
-    .scanner-card {
-      width: 100%;
-      max-width: 380px;
-      background: var(--card-bg);
-      border-radius: 24px;
-      padding: 20px;
-      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.9);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      text-align: center;
-    }
-    
-    h3 {
-      margin-bottom: 15px;
-      font-size: 1.2rem;
-    }
-    
-    #reader {
-      width: 100% !important;
-      border-radius: 16px !important;
-      overflow: hidden !important;
-      background: #000;
-      border: none !important;
-    }
-    
-    #reader video {
-      object-fit: cover !important;
-      border-radius: 16px !important;
-    }
-    
-    #reader__dashboard,
-    #reader img,
-    #reader__header_container {
-      display: none !important;
-    }
-    
-    .btn-start {
-      margin-top: 15px;
-      width: 100%;
-      padding: 14px;
-      background: var(--primary);
-      color: white;
-      border: none;
-      border-radius: 14px;
-      font-size: 1rem;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    
-    .error-msg {
-      color: #ef4444;
-      font-size: 0.85rem;
-      margin-top: 10px;
-      display: none;
-      word-break: break-all;
-    }
-  </style>
-</head>
-
-<body>
-  
-  <div class="scanner-card">
-    <h3>📷 Classroom Scanner</h3>
-    <div id="reader"></div>
-    <div id="err-box" class="error-msg"></div>
-    <button class="btn-start" id="start-btn" onclick="startScanner()">Start Camera</button>
-  </div>
-  
-  <script>
-    function startScanner() {
-      document.getElementById('start-btn').style.display = 'none';
-      
-      const html5QrCode = new Html5Qrcode("reader");
-      
-      html5QrCode.start({ facingMode: "environment" }, { fps: 15, qrbox: { width: 230, height: 230 } },
-        (decodedText) => {
-          if (navigator.vibrate) navigator.vibrate(200);
-          html5QrCode.stop().then(() => {
-            window.location.href = decodedText;
-          }).catch(() => {
-            window.location.href = decodedText;
-          });
-        },
-        (errorMessage) => {
-          // Frame scan errors ignore karein
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Native Secure Scanner</title>
+    <style>
+        :root {
+            --bg: #000;
+            --card-bg: #18181b;
+            --primary: #6366f1;
+            --safe: #22c55e;
+            --warn: #eab308;
+            --danger: #ef4444;
+            --text: #f4f4f5;
         }
-      ).catch(err => {
-        // Agar back camera na chale toh front try karein
-        html5QrCode.start({ facingMode: "user" }, { fps: 15, qrbox: { width: 230, height: 230 } },
-          (decodedText) => {
-            window.location.href = decodedText;
-          }
-        ).catch(error => {
-          const box = document.getElementById('err-box');
-          box.style.display = 'block';
-          box.innerText = "Error: " + error;
-          document.getElementById('start-btn').style.display = 'block';
-        });
-      });
-    }
-  </script>
-</body>
 
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+        /* Fullscreen Camera Feed */
+        #webcam {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+
+        /* UI Overlays */
+        .ui-layer {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px;
+            pointer-events: none;
+        }
+
+        .top-bar {
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .scanner-frame {
+            width: 250px;
+            height: 250px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.65);
+            position: relative;
+        }
+
+        .scanner-frame::before, .scanner-frame::after {
+            content: '';
+            position: absolute;
+            width: 30px; height: 30px;
+            border-color: var(--primary);
+            border-style: solid;
+        }
+        .scanner-frame::before { top: -2px; left: -2px; border-width: 4px 0 0 4px; border-radius: 20px 0 0 0; }
+        .scanner-frame::after { bottom: -2px; right: -2px; border-width: 0 4px 4px 0; border-radius: 0 0 20px 0; }
+
+        .btn-start {
+            pointer-events: auto;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 16px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);
+            margin-bottom: 20px;
+        }
+
+        /* Security Gatekeeper Modal */
+        #gatekeeper {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(15px);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            z-index: 100;
+            text-align: center;
+        }
+
+        .modal-card {
+            background: var(--card-bg);
+            padding: 28px 24px;
+            border-radius: 28px;
+            width: 100%;
+            max-width: 340px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .status-icon { font-size: 3.2rem; margin-bottom: 14px; }
+        .modal-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; }
+        .modal-desc { font-size: 0.85rem; color: #a1a1aa; margin-bottom: 24px; word-break: break-all; line-height: 1.4; }
+        
+        .btn-row { display: flex; gap: 12px; }
+        .btn {
+            flex: 1; padding: 14px; border-radius: 14px; border: none; font-weight: 600; font-size: 0.9rem; cursor: pointer;
+        }
+        .btn-cancel { background: rgba(255,255,255,0.08); color: var(--text); border: 1px solid rgba(255,255,255,0.1); }
+        .btn-action { background: var(--primary); color: white; }
+    </style>
+</head>
+<body>
+
+    <!-- Camera Feed -->
+    <video id="webcam" autoplay playsinline muted></video>
+
+    <div class="ui-layer">
+        <div class="top-bar">🛡️ Native Smart Scanner</div>
+        <div class="scanner-frame"></div>
+        <button class="btn-start" id="start-btn" onclick="initScanner()">Start Camera</button>
+    </div>
+
+    <!-- Security Gatekeeper Modal -->
+    <div id="gatekeeper">
+        <div class="modal-card">
+            <div id="status-icon" class="status-icon">🔍</div>
+            <div id="status-title" class="modal-title">Analyzing...</div>
+            <div id="status-desc" class="modal-desc">Checking safety rules...</div>
+            <div class="btn-row">
+                <button class="btn btn-cancel" onclick="location.reload()">Cancel</button>
+                <button class="btn btn-action" id="btn-proceed" onclick="executeAction()">Proceed</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ALLOWED_DOMAIN = "college.edu"; // Apna college domain yahan daalein
+        let scannedPayload = "";
+        let isUrlValid = false;
+        let scanningActive = false;
+
+        async function initScanner() {
+            document.getElementById('start-btn').style.display = 'none';
+
+            // Check if BarcodeDetector is supported by browser
+            if (!('BarcodeDetector' in window)) {
+                alert("Your browser does not support native BarcodeDetector. Please update Google Chrome.");
+                document.getElementById('start-btn').style.display = 'block';
+                return;
+            }
+
+            try {
+                // Request back camera
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "environment" }
+                });
+                
+                const videoElement = document.getElementById('webcam');
+                videoElement.srcObject = stream;
+                await videoElement.play();
+
+                const barcodeDetector = new BarcodeDetector({ formats: ['qr_code', 'code_128'] });
+                scanningActive = true;
+                detectLoop(videoElement, barcodeDetector);
+
+            } catch (err) {
+                alert("Camera Permission Error: " + err);
+                document.getElementById('start-btn').style.display = 'block';
+            }
+        }
+
+        async function detectLoop(video, detector) {
+            if (!scanningActive) return;
+
+            try {
+                const barcodes = await detector.detect(video);
+                if (barcodes.length > 0) {
+                    scanningActive = false;
+                    const rawText = barcodes[0].rawValue;
+                    
+                    if (navigator.vibrate) navigator.vibrate(200);
+                    
+                    // Stop camera stream tracks
+                    const stream = video.srcObject;
+                    if (stream) {
+                        stream.getTracks().forEach(track => track.stop());
+                    }
+
+                    evaluateSecurity(rawText);
+                    return;
+                }
+            } catch (e) {
+                // Frame scanning glitch ignore karein
+            }
+
+            if (scanningActive) {
+                requestAnimationFrame(() => detectLoop(video, detector));
+            }
+        }
+
+        function evaluateSecurity(data) {
+            scannedPayload = data;
+            const modal = document.getElementById('gatekeeper');
+            const icon = document.getElementById('status-icon');
+            const title = document.getElementById('status-title');
+            const desc = document.getElementById('status-desc');
+            const btn = document.getElementById('btn-proceed');
+
+            modal.style.display = 'flex';
+
+            try {
+                const url = new URL(data);
+                const isHttps = url.protocol === 'https:';
+                const isTrustedDomain = url.hostname.endsWith(ALLOWED_DOMAIN);
+
+                if (isHttps && isTrustedDomain) {
+                    icon.innerText = "✅";
+                    title.innerText = "Trusted Attendance Link";
+                    title.style.color = "var(--safe)";
+                    desc.innerText = "Verified college link: " + url.hostname;
+                    btn.innerText = "Mark Attendance";
+                    btn.style.background = "var(--safe)";
+                    isUrlValid = true;
+                } 
+                else if (!isHttps) {
+                    icon.innerText = "⚠️";
+                    title.innerText = "Insecure Connection (HTTP)";
+                    title.style.color = "var(--warn)";
+                    desc.innerText = "Warning: Unencrypted HTTP link detected: " + data;
+                    btn.innerText = "Open Anyway";
+                    btn.style.background = "var(--warn)";
+                    btn.style.color = "#000";
+                    isUrlValid = true;
+                } 
+                else {
+                    icon.innerText = "🌐";
+                    title.innerText = "External Link Warning";
+                    title.style.color = "var(--danger)";
+                    desc.innerText = "Untrusted domain (" + url.hostname + "). Proceed with caution.";
+                    btn.innerText = "Open External";
+                    btn.style.background = "var(--danger)";
+                    isUrlValid = true;
+                }
+            } catch (e) {
+                icon.innerText = "📄";
+                title.innerText = "Scanned Text / Code";
+                title.style.color = "var(--text)";
+                desc.innerText = data;
+                btn.innerText = "Copy Text";
+                btn.style.background = "var(--primary)";
+                isUrlValid = false;
+            }
+        }
+
+        function executeAction() {
+            if (isUrlValid) {
+                window.location.href = scannedPayload;
+            } else {
+                navigator.clipboard.writeText(scannedPayload).then(() => {
+                    alert("Text copied to clipboard!");
+                    location.reload();
+                });
+            }
+        }
+    </script>
+</body>
 </html>
