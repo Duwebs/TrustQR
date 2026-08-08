@@ -3,276 +3,225 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Native Secure Scanner</title>
+    <title>TrustQR - Smart Attendance Scanner</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- HTML5 QR Code Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <!-- Google Fonts & Lucide Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        :root {
-            --bg: #000;
-            --card-bg: #18181b;
-            --primary: #6366f1;
-            --safe: #22c55e;
-            --warn: #eab308;
-            --danger: #ef4444;
-            --text: #f4f4f5;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-
-        /* Fullscreen Camera Feed */
-        #webcam {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            object-fit: cover;
-            z-index: 1;
-        }
-
-        /* UI Overlays */
-        .ui-layer {
-            position: relative;
-            z-index: 10;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-            padding: 24px;
-            pointer-events: none;
-        }
-
-        .top-bar {
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(10px);
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .scanner-frame {
-            width: 250px;
-            height: 250px;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 24px;
-            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.65);
-            position: relative;
-        }
-
-        .scanner-frame::before, .scanner-frame::after {
-            content: '';
-            position: absolute;
-            width: 30px; height: 30px;
-            border-color: var(--primary);
-            border-style: solid;
-        }
-        .scanner-frame::before { top: -2px; left: -2px; border-width: 4px 0 0 4px; border-radius: 20px 0 0 0; }
-        .scanner-frame::after { bottom: -2px; right: -2px; border-width: 0 4px 4px 0; border-radius: 0 0 20px 0; }
-
-        .btn-start {
-            pointer-events: auto;
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 14px 32px;
-            border-radius: 16px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);
-            margin-bottom: 20px;
-        }
-
-        /* Security Gatekeeper Modal */
-        #gatekeeper {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.95);
-            backdrop-filter: blur(15px);
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-            z-index: 100;
-            text-align: center;
-        }
-
-        .modal-card {
-            background: var(--card-bg);
-            padding: 28px 24px;
-            border-radius: 28px;
-            width: 100%;
-            max-width: 340px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .status-icon { font-size: 3.2rem; margin-bottom: 14px; }
-        .modal-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; }
-        .modal-desc { font-size: 0.85rem; color: #a1a1aa; margin-bottom: 24px; word-break: break-all; line-height: 1.4; }
-        
-        .btn-row { display: flex; gap: 12px; }
-        .btn {
-            flex: 1; padding: 14px; border-radius: 14px; border: none; font-weight: 600; font-size: 0.9rem; cursor: pointer;
-        }
-        .btn-cancel { background: rgba(255,255,255,0.08); color: var(--text); border: 1px solid rgba(255,255,255,0.1); }
-        .btn-action { background: var(--primary); color: white; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        #reader video { width: 100% !important; height: 100% !important; object-fit: cover !important; border-radius: 1.5rem; }
     </style>
 </head>
-<body>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
 
-    <!-- Camera Feed -->
-    <video id="webcam" autoplay playsinline muted></video>
+    <!-- Top App Bar -->
+    <header class="w-full px-6 py-4 flex items-center justify-between border-b border-slate-800/60 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40">
+        <div class="flex items-center space-x-3">
+            <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+                <i data-lucide="shield-check" class="w-6 h-6 text-white"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg tracking-tight text-white flex items-center gap-1.5">
+                    TrustQR <span class="text-xs bg-indigo-500/20 text-indigo-400 font-medium px-2 py-0.5 rounded-full border border-indigo-500/30">Secure</span>
+                </h1>
+                <p class="text-xs text-slate-400">Instant Attendance Scanner</p>
+            </div>
+        </div>
+        <button id="toggleCamera" class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition">
+            <i data-lucide="camera-swapping" class="w-5 h-5"></i>
+        </button>
+    </header>
 
-    <div class="ui-layer">
-        <div class="top-bar">🛡️ Native Smart Scanner</div>
-        <div class="scanner-frame"></div>
-        <button class="btn-start" id="start-btn" onclick="initScanner()">Start Camera</button>
-    </div>
+    <!-- Main Scanner Viewport -->
+    <main class="flex-1 flex flex-col items-center justify-center p-4 max-w-md mx-auto w-full">
+        
+        <div class="w-full relative aspect-square bg-slate-900 rounded-3xl border border-slate-800/80 shadow-2xl overflow-hidden flex flex-col items-center justify-center p-2">
+            <!-- Camera Feed Container -->
+            <div id="reader" class="w-full h-full absolute inset-0"></div>
+            
+            <!-- Scanning Laser Animation Overlay -->
+            <div id="scannerOverlay" class="absolute inset-0 pointer-events-none border-2 border-indigo-500/40 rounded-3xl flex flex-col justify-between p-6">
+                <div class="flex justify-between">
+                    <div class="w-6 h-6 border-t-2 border-l-2 border-indigo-400 rounded-tl-lg"></div>
+                    <div class="w-6 h-6 border-t-2 border-r-2 border-indigo-400 rounded-tr-lg"></div>
+                </div>
+                <div class="w-full h-0.5 bg-gradient-to-r from-transparent via-indigo-500 to-transparent animate-pulse"></div>
+                <div class="flex justify-between">
+                    <div class="w-6 h-6 border-b-2 border-l-2 border-indigo-400 rounded-bl-lg"></div>
+                    <div class="w-6 h-6 border-b-2 border-r-2 border-indigo-400 rounded-br-lg"></div>
+                </div>
+            </div>
+        </div>
 
-    <!-- Security Gatekeeper Modal -->
-    <div id="gatekeeper">
-        <div class="modal-card">
-            <div id="status-icon" class="status-icon">🔍</div>
-            <div id="status-title" class="modal-title">Analyzing...</div>
-            <div id="status-desc" class="modal-desc">Checking safety rules...</div>
-            <div class="btn-row">
-                <button class="btn btn-cancel" onclick="location.reload()">Cancel</button>
-                <button class="btn btn-action" id="btn-proceed" onclick="executeAction()">Proceed</button>
+        <!-- Status / Helper Text -->
+        <div class="mt-6 text-center space-y-1">
+            <p id="statusText" class="text-sm font-medium text-slate-300 flex items-center justify-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                Align QR code within the frame
+            </p>
+            <p class="text-xs text-slate-500">Auto-detects and opens valid attendance links</p>
+        </div>
+
+    </main>
+
+    <!-- Footer Credit -->
+    <footer class="w-full py-4 text-center text-xs text-slate-600 border-t border-slate-900">
+        TrustQR Engine &bull; Built for Students
+    </footer>
+
+    <!-- HTTP Warning Modal (Hidden by Default) -->
+    <div id="warningModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200">
+            <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+            </div>
+            <div class="text-center space-y-1">
+                <h3 class="text-lg font-bold text-white">Unsafe Link Detected</h3>
+                <p class="text-xs text-slate-400">This QR code points to an unencrypted HTTP link. Proceed with caution.</p>
+            </div>
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/80 break-all text-xs font-mono text-indigo-300 max-h-24 overflow-y-auto" id="modalUrlText">
+                http://example.com
+            </div>
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button id="cancelBtn" class="w-full py-3 rounded-xl bg-slate-800 text-slate-300 font-medium text-sm hover:bg-slate-700 transition">
+                    Cancel
+                </button>
+                <button id="proceedBtn" class="w-full py-3 rounded-xl bg-indigo-600 text-white font-medium text-sm hover:bg-indigo-500 shadow-lg shadow-indigo-600/25 transition">
+                    Proceed
+                </button>
             </div>
         </div>
     </div>
 
+    <!-- App Logic Script -->
     <script>
-        const ALLOWED_DOMAIN = "college.edu"; // Apna college domain yahan daalein
-        let scannedPayload = "";
-        let isUrlValid = false;
-        let scanningActive = false;
+        lucide.createIcons();
 
-        async function initScanner() {
-            document.getElementById('start-btn').style.display = 'none';
+        let html5QrCode;
+        let currentCameraId = null;
+        let cameras = [];
+        let cameraIndex = 0;
 
-            // Check if BarcodeDetector is supported by browser
-            if (!('BarcodeDetector' in window)) {
-                alert("Your browser does not support native BarcodeDetector. Please update Google Chrome.");
-                document.getElementById('start-btn').style.display = 'block';
-                return;
+        const statusText = document.getElementById('statusText');
+        const warningModal = document.getElementById('warningModal');
+        const modalUrlText = document.getElementById('modalUrlText');
+        const proceedBtn = document.getElementById('proceedBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const toggleCameraBtn = document.getElementById('toggleCamera');
+
+        let pendingUrl = '';
+
+        function onScanSuccess(decodedText, decodedResult) {
+            // Stop scanner temporarily to prevent multiple triggers
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.pause();
             }
 
+            // Check if it's a valid URL
+            let targetUrl = decodedText;
             try {
-                // Request back camera
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: "environment" }
-                });
-                
-                const videoElement = document.getElementById('webcam');
-                videoElement.srcObject = stream;
-                await videoElement.play();
-
-                const barcodeDetector = new BarcodeDetector({ formats: ['qr_code', 'code_128'] });
-                scanningActive = true;
-                detectLoop(videoElement, barcodeDetector);
-
-            } catch (err) {
-                alert("Camera Permission Error: " + err);
-                document.getElementById('start-btn').style.display = 'block';
-            }
-        }
-
-        async function detectLoop(video, detector) {
-            if (!scanningActive) return;
-
-            try {
-                const barcodes = await detector.detect(video);
-                if (barcodes.length > 0) {
-                    scanningActive = false;
-                    const rawText = barcodes[0].rawValue;
-                    
-                    if (navigator.vibrate) navigator.vibrate(200);
-                    
-                    // Stop camera stream tracks
-                    const stream = video.srcObject;
-                    if (stream) {
-                        stream.getTracks().forEach(track => track.stop());
+                // If it's a raw string, test if it parses as URL or prepend http if needed
+                if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+                    // Check if it looks like a domain or text, treat as search/text or format
+                    if (targetUrl.includes('.')) {
+                        targetUrl = 'https://' + targetUrl;
                     }
-
-                    evaluateSecurity(rawText);
-                    return;
                 }
-            } catch (e) {
-                // Frame scanning glitch ignore karein
-            }
+                
+                const parsed = new URL(targetUrl);
 
-            if (scanningActive) {
-                requestAnimationFrame(() => detectLoop(video, detector));
+                if (parsed.protocol === 'https:') {
+                    // Secure Link -> Direct Open
+                    statusText.innerHTML = `<span class="text-emerald-400 font-semibold">Redirecting securely...</span>`;
+                    window.location.href = targetUrl;
+                } else {
+                    // Insecure HTTP Link -> Show Warning Modal
+                    pendingUrl = targetUrl;
+                    modalUrlText.textContent = targetUrl;
+                    warningModal.classList.remove('hidden');
+                }
+            } catch (err) {
+                // Not a strict URL, treat as text or handle gracefully
+                statusText.innerHTML = `<span class="text-amber-400 font-semibold">Scanned Text: ${decodedText}</span>`;
+                setTimeout(() => {
+                    if (html5QrCode) html5QrCode.resume();
+                }, 3000);
             }
         }
 
-        function evaluateSecurity(data) {
-            scannedPayload = data;
-            const modal = document.getElementById('gatekeeper');
-            const icon = document.getElementById('status-icon');
-            const title = document.getElementById('status-title');
-            const desc = document.getElementById('status-desc');
-            const btn = document.getElementById('btn-proceed');
+        // Modal Button Handlers
+        proceedBtn.addEventListener('click', () => {
+            warningModal.classList.add('hidden');
+            window.location.href = pendingUrl;
+        });
 
-            modal.style.display = 'flex';
+        cancelBtn.addEventListener('click', () => {
+            warningModal.classList.add('hidden');
+            pendingUrl = '';
+            if (html5QrCode) {
+                html5QrCode.resume();
+                statusText.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Align QR code within the frame`;
+            }
+        });
 
+        // Initialize Camera Scanner
+        async function startScanner() {
+            html5QrCode = new Html5Qrcode("reader");
             try {
-                const url = new URL(data);
-                const isHttps = url.protocol === 'https:';
-                const isTrustedDomain = url.hostname.endsWith(ALLOWED_DOMAIN);
+                cameras = await Html5Qrcode.getCameras();
+                if (cameras && cameras.length > 0) {
+                    // Prefer back camera if available
+                    let backCamera = cameras.find(cam => cam.label.toLowerCase().includes('back') || cam.label.toLowerCase().includes('rear'));
+                    currentCameraId = backCamera ? backCamera.id : cameras[cameras.length - 1].id;
 
-                if (isHttps && isTrustedDomain) {
-                    icon.innerText = "✅";
-                    title.innerText = "Trusted Attendance Link";
-                    title.style.color = "var(--safe)";
-                    desc.innerText = "Verified college link: " + url.hostname;
-                    btn.innerText = "Mark Attendance";
-                    btn.style.background = "var(--safe)";
-                    isUrlValid = true;
-                } 
-                else if (!isHttps) {
-                    icon.innerText = "⚠️";
-                    title.innerText = "Insecure Connection (HTTP)";
-                    title.style.color = "var(--warn)";
-                    desc.innerText = "Warning: Unencrypted HTTP link detected: " + data;
-                    btn.innerText = "Open Anyway";
-                    btn.style.background = "var(--warn)";
-                    btn.style.color = "#000";
-                    isUrlValid = true;
-                } 
-                else {
-                    icon.innerText = "🌐";
-                    title.innerText = "External Link Warning";
-                    title.style.color = "var(--danger)";
-                    desc.innerText = "Untrusted domain (" + url.hostname + "). Proceed with caution.";
-                    btn.innerText = "Open External";
-                    btn.style.background = "var(--danger)";
-                    isUrlValid = true;
+                    await startCameraStream(currentCameraId);
+                } else {
+                    statusText.textContent = "No cameras found on this device.";
                 }
-            } catch (e) {
-                icon.innerText = "📄";
-                title.innerText = "Scanned Text / Code";
-                title.style.color = "var(--text)";
-                desc.innerText = data;
-                btn.innerText = "Copy Text";
-                btn.style.background = "var(--primary)";
-                isUrlValid = false;
+            } catch (err) {
+                console.error("Camera initialization error:", err);
+                statusText.textContent = "Camera permission denied or unavailable.";
             }
         }
 
-        function executeAction() {
-            if (isUrlValid) {
-                window.location.href = scannedPayload;
-            } else {
-                navigator.clipboard.writeText(scannedPayload).then(() => {
-                    alert("Text copied to clipboard!");
-                    location.reload();
-                });
+        async function startCameraStream(cameraId) {
+            try {
+                await html5QrCode.start(
+                    cameraId,
+                    {
+                        fps: 20,
+                        qrbox: { width: 240, height: 240 },
+                        aspectRatio: 1.0
+                    },
+                    onScanSuccess,
+                    (errorMessage) => {
+                        // Ignore frame-by-frame parsing errors to prevent console spam
+                    }
+                );
+            } catch (err) {
+                console.error("Failed to start scanner stream:", err);
             }
         }
+
+        // Switch Camera (Front/Back)
+        toggleCameraBtn.addEventListener('click', async () => {
+            if (cameras.length > 1) {
+                cameraIndex = (cameraIndex + 1) % cameras.length;
+                if (html5QrCode && html5QrCode.isScanning) {
+                    await html5QrCode.stop();
+                }
+                await startCameraStream(cameras[cameraIndex].id);
+            }
+        });
+
+        // Run scanner on load
+        window.addEventListener('load', () => {
+            startScanner();
+        });
     </script>
 </body>
 </html>
