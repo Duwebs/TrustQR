@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PrezQR - Smart Scanner App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * { -webkit-tap-highlight-color: transparent; user-select: none; box-sizing: border-box; }
+        body { 
+            margin: 0; padding: 0; height: 100vh; 
+            background: #f1f3f4; font-family: 'Google Sans', 'Roboto', sans-serif;
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
+        }
+        /* Google Clean Phone Container Frame */
+        .phone-frame {
+            width: 100%; max-width: 385px; height: 100%; max-height: 780px;
+            background: #ffffff; border-radius: 40px; box-shadow: 0 16px 40px rgba(60, 64, 67, 0.15);
+            border: 8px solid #e8eaed; position: relative; overflow: hidden;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        @media (min-width: 640px) {
+            .phone-frame { height: 86vh; }
+        }
+        
+        /* Html5-qrcode video fit */
+        #reader { width: 100% !important; border: none !important; background: #000 !important; }
+        #reader video { width: 100% !important; height: 100% !important; object-fit: cover !important; border-radius: 1.5rem; }
+        #reader__dashboard_section_csr { display: none !important; }
+
+        /* Smooth Laser Beam Animation */
+        @keyframes scanMove {
+            0% { top: 5%; }
+            50% { top: 90%; }
+            100% { top: 5%; }
+        }
+        .laser-beam {
+            position: absolute;
+            left: 5%;
+            right: 5%;
+            height: 3px;
+            background: #1a73e8;
+            box-shadow: 0 0 12px 3px rgba(26, 115, 232, 0.7);
+            animation: scanMove 2.5s infinite ease-in-out;
+        }
+
+        .slide-up {
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Phone Container -->
+    <div class="phone-frame">
+        
+        <!-- TOP SECTION -->
+        <div>
+            <!-- Status Bar -->
+            <div class="px-6 pt-3 pb-1 flex justify-between items-center text-slate-500 text-xs font-medium bg-white">
+                <span id="currentTime">9:41</span>
+                <div class="flex items-center space-x-1.5">
+                    <svg class="w-3.5 h-3.5 fill-current text-slate-600" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19h3.29c1.33.61 2.83 1 4.36 1 4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+                </div>
+            </div>
+
+            <!-- Google Product Style App Bar -->
+            <div class="px-5 py-3 bg-white flex justify-between items-center border-b border-slate-100 shadow-sm">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm">
+                        <i data-lucide="qr-code" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-slate-900 font-bold text-base tracking-tight leading-none">Prez<span class="text-blue-600">qr</span></h1>
+                        <p class="text-[11px] text-emerald-600 font-medium flex items-center gap-1 mt-1">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Camera Active
+                        </p>
+                    </div>
+                </div>
+                <button id="torchBtn" class="p-3 rounded-2xl bg-slate-100 text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition shadow-sm">
+                    <i data-lucide="zap" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- CENTER SCANNER VIEWPORT -->
+        <div class="flex-1 px-5 py-4 flex flex-col items-center justify-center bg-white relative">
+            <div class="w-full h-full max-h-[340px] relative rounded-3xl overflow-hidden bg-black border border-slate-200 shadow-inner flex items-center justify-center">
+                <div id="reader" class="absolute inset-0 w-full h-full"></div>
+                
+                <!-- Scanner Overlay Corners & Moving Laser -->
+                <div class="absolute inset-6 pointer-events-none flex items-center justify-center">
+                    <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-500 rounded-tl-xl"></div>
+                    <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-500 rounded-tr-xl"></div>
+                    <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-500 rounded-bl-xl"></div>
+                    <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-500 rounded-br-xl"></div>
+                    
+                    <!-- Animated Laser Beam -->
+                    <div class="laser-beam"></div>
+                </div>
+            </div>
+            
+            <p class="text-xs text-slate-500 mt-3 text-center font-medium">
+                Align the secure QR code within the frame
+            </p>
+        </div>
+
+        <!-- BOTTOM NAVIGATION -->
+        <div class="px-6 py-4 bg-white border-t border-slate-100 flex items-center justify-around text-slate-600">
+            <button class="flex flex-col items-center text-blue-600 gap-1">
+                <i data-lucide="scan" class="w-5 h-5"></i>
+                <span class="text-[11px] font-semibold">Scan</span>
+            </button>
+            <button onclick="alert('History feature coming soon!')" class="flex flex-col items-center text-slate-400 hover:text-slate-600 gap-1 transition">
+                <i data-lucide="history" class="w-5 h-5"></i>
+                <span class="text-[11px] font-medium">History</span>
+            </button>
+            <button onclick="alert('Profile settings coming soon!')" class="flex flex-col items-center text-slate-400 hover:text-slate-600 gap-1 transition">
+                <i data-lucide="user" class="w-5 h-5"></i>
+                <span class="text-[11px] font-medium">Profile</span>
+            </button>
+        </div>
+
+        <!-- DYNAMIC MODAL (Success or Warning) -->
+        <div id="successModal" class="absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden flex items-end justify-center p-4">
+            <div class="bg-white border border-slate-100 w-full rounded-3xl p-6 text-center text-slate-900 slide-up mb-2 shadow-2xl">
+                <!-- Dynamic Icon Container -->
+                <div id="modalIcon" class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3 border border-emerald-100">
+                    <i data-lucide="check" class="w-7 h-7"></i>
+                </div>
+                <h2 id="modalTitle" class="text-lg font-bold text-slate-900">Secure Link Found</h2>
+                <p id="scannedDataText" class="text-xs text-slate-500 mt-1 mb-5 break-words font-mono bg-slate-50 py-2 px-3 rounded-xl border border-slate-200">URL</p>
+                
+                <!-- Dynamic Buttons / Actions -->
+                <div id="actionBtnContainer">
+                    <p class="text-xs text-emerald-600 font-medium animate-pulse">Redirecting automatically...</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // Live Clock Simulation
+        function updateTime() {
+            const now = new Date();
+            let hours = now.getHours();
+            let minutes = now.getMinutes();
+            minutes = minutes < 10 ? '0' + minutes : minutes;
+            document.getElementById('currentTime').innerText = `${hours}:${minutes}`;
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        let html5QrCode = new Html5Qrcode("reader");
+        let isScanning = true;
+
+        function startScanner() {
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 15, qrbox: { width: 220, height: 220 } },
+                (decodedText) => {
+                    if (!isScanning) return;
+                    isScanning = false;
+                    html5QrCode.pause();
+
+                    const modalIcon = document.getElementById('modalIcon');
+                    const modalTitle = document.getElementById('modalTitle');
+                    const scannedDataText = document.getElementById('scannedDataText');
+                    const actionBtnContainer = document.getElementById('actionBtnContainer');
+                    const successModal = document.getElementById('successModal');
+
+                    scannedDataText.innerText = decodedText;
+
+                    // Check URL Type (HTTPS vs HTTP / Unsafe)
+                    if (decodedText.startsWith('https://')) {
+                        // Secure HTTPS -> Auto Redirect with Green Tick
+                        modalIcon.className = "w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3 border border-emerald-100 flex items-center justify-center";
+                        modalIcon.innerHTML = '<i data-lucide="check" class="w-7 h-7"></i>';
+                        modalTitle.innerText = "Secure Link - Redirecting...";
+                        actionBtnContainer.innerHTML = `<p class="text-xs text-emerald-600 font-medium animate-pulse">Taking you to website safely...</p>`;
+                        
+                        successModal.classList.remove('hidden');
+                        lucide.createIcons();
+
+                        // Auto Redirect after 1.5 seconds
+                        setTimeout(() => {
+                            window.location.href = decodedText;
+                        }, 1500);
+
+                    } else if (decodedText.startsWith('http://') || decodedText.startsWith('http')) {
+                        // Insecure HTTP -> Warning Modal
+                        modalIcon.className = "w-14 h-14 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3 border border-amber-100 flex items-center justify-center";
+                        modalIcon.innerHTML = '<i data-lucide="alert-triangle" class="w-7 h-7"></i>';
+                        modalTitle.innerText = "Insecure Link Warning!";
+                        actionBtnContainer.innerHTML = `
+                            <p class="text-[11px] text-amber-600 mb-4 font-medium leading-relaxed">Yeh link HTTP (insecure) hai ya fraud ho sakta hai. Kya aap fir bhi is par jana chahte hain?</p>
+                            <div class="flex gap-2">
+                                <button onclick="resetScanner()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-3 rounded-2xl transition text-xs">Cancel</button>
+                                <button onclick="window.location.href='${decodedText}'" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-medium py-3 rounded-2xl transition text-xs shadow-md">Proceed</button>
+                            </div>
+                        `;
+                        
+                        successModal.classList.remove('hidden');
+                        lucide.createIcons();
+
+                    } else {
+                        // Normal Text / Non-URL QR Code
+                        modalIcon.className = "w-14 h-14 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 border border-blue-100 flex items-center justify-center";
+                        modalIcon.innerHTML = '<i data-lucide="info" class="w-7 h-7"></i>';
+                        modalTitle.innerText = "Scanned Text";
+                        actionBtnContainer.innerHTML = `
+                            <button onclick="resetScanner()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-2xl shadow-md transition text-sm">Scan Next Code</button>
+                        `;
+                        
+                        successModal.classList.remove('hidden');
+                        lucide.createIcons();
+                    }
+                },
+                (error) => {}
+            ).catch(err => {
+                console.error("Camera error", err);
+            });
+        }
+
+        function resetScanner() {
+            document.getElementById('successModal').classList.add('hidden');
+            html5QrCode.resume();
+            isScanning = true;
+        }
+
+        window.addEventListener('load', startScanner);
+
+        let torchActive = false;
+        document.getElementById('torchBtn').onclick = () => {
+            torchActive = !torchActive;
+            document.getElementById('torchBtn').style.background = torchActive ? '#e8f0fe' : '#f1f3f4';
+            document.getElementById('torchBtn').style.color = torchActive ? '#1a73e8' : '#3c4043';
+        };
+    </script>
+</body>
+</html>
