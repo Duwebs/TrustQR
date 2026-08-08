@@ -2,226 +2,31 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TrustQR - Smart Attendance Scanner</title>
-    <!-- Tailwind CSS CDN -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrustQR</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- HTML5 QR Code Scanner Library -->
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <!-- Google Fonts & Lucide Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        #reader video { width: 100% !important; height: 100% !important; object-fit: cover !important; border-radius: 1.5rem; }
+        body { background: white; }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
-
-    <!-- Top App Bar -->
-    <header class="w-full px-6 py-4 flex items-center justify-between border-b border-slate-800/60 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40">
-        <div class="flex items-center space-x-3">
-            <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25">
-                <i data-lucide="shield-check" class="w-6 h-6 text-white"></i>
-            </div>
-            <div>
-                <h1 class="font-bold text-lg tracking-tight text-white flex items-center gap-1.5">
-                    TrustQR <span class="text-xs bg-indigo-500/20 text-indigo-400 font-medium px-2 py-0.5 rounded-full border border-indigo-500/30">Secure</span>
-                </h1>
-                <p class="text-xs text-slate-400">Instant Attendance Scanner</p>
-            </div>
-        </div>
-        <button id="toggleCamera" class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition">
-            <i data-lucide="camera-swapping" class="w-5 h-5"></i>
-        </button>
-    </header>
-
-    <!-- Main Scanner Viewport -->
-    <main class="flex-1 flex flex-col items-center justify-center p-4 max-w-md mx-auto w-full">
-        
-        <div class="w-full relative aspect-square bg-slate-900 rounded-3xl border border-slate-800/80 shadow-2xl overflow-hidden flex flex-col items-center justify-center p-2">
-            <!-- Camera Feed Container -->
-            <div id="reader" class="w-full h-full absolute inset-0"></div>
-            
-            <!-- Scanning Laser Animation Overlay -->
-            <div id="scannerOverlay" class="absolute inset-0 pointer-events-none border-2 border-indigo-500/40 rounded-3xl flex flex-col justify-between p-6">
-                <div class="flex justify-between">
-                    <div class="w-6 h-6 border-t-2 border-l-2 border-indigo-400 rounded-tl-lg"></div>
-                    <div class="w-6 h-6 border-t-2 border-r-2 border-indigo-400 rounded-tr-lg"></div>
-                </div>
-                <div class="w-full h-0.5 bg-gradient-to-r from-transparent via-indigo-500 to-transparent animate-pulse"></div>
-                <div class="flex justify-between">
-                    <div class="w-6 h-6 border-b-2 border-l-2 border-indigo-400 rounded-bl-lg"></div>
-                    <div class="w-6 h-6 border-b-2 border-r-2 border-indigo-400 rounded-br-lg"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Status / Helper Text -->
-        <div class="mt-6 text-center space-y-1">
-            <p id="statusText" class="text-sm font-medium text-slate-300 flex items-center justify-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                Align QR code within the frame
-            </p>
-            <p class="text-xs text-slate-500">Auto-detects and opens valid attendance links</p>
-        </div>
-
-    </main>
-
-    <!-- Footer Credit -->
-    <footer class="w-full py-4 text-center text-xs text-slate-600 border-t border-slate-900">
-        TrustQR Engine &bull; Built for Students
-    </footer>
-
-    <!-- HTTP Warning Modal (Hidden by Default) -->
-    <div id="warningModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200">
-            <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
-                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
-            </div>
-            <div class="text-center space-y-1">
-                <h3 class="text-lg font-bold text-white">Unsafe Link Detected</h3>
-                <p class="text-xs text-slate-400">This QR code points to an unencrypted HTTP link. Proceed with caution.</p>
-            </div>
-            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/80 break-all text-xs font-mono text-indigo-300 max-h-24 overflow-y-auto" id="modalUrlText">
-                http://example.com
-            </div>
-            <div class="grid grid-cols-2 gap-3 pt-2">
-                <button id="cancelBtn" class="w-full py-3 rounded-xl bg-slate-800 text-slate-300 font-medium text-sm hover:bg-slate-700 transition">
-                    Cancel
-                </button>
-                <button id="proceedBtn" class="w-full py-3 rounded-xl bg-indigo-600 text-white font-medium text-sm hover:bg-indigo-500 shadow-lg shadow-indigo-600/25 transition">
-                    Proceed
-                </button>
-            </div>
-        </div>
+<body class="h-screen flex items-center justify-center">
+    <!-- Splash Animation -->
+    <div class="flex flex-col items-center animate-in fade-in duration-700">
+        <svg width="72" height="72" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M32 2C15.4315 2 2 15.4315 2 32V45C2 50.5228 6.47715 55 12 55H32H52C57.5228 55 62 50.5228 62 45V32C62 15.4315 48.5685 2 32 2Z" fill="#4285F4"/>
+            <rect x="20" y="18" width="8" height="8" rx="1" fill="white"/>
+            <rect x="36" y="18" width="8" height="8" rx="1" fill="white"/>
+            <rect x="36" y="34" width="8" height="8" rx="1" fill="white"/>
+            <rect x="20" y="34" width="8" height="8" rx="1" fill="white" class="animate-pulse"/>
+        </svg>
+        <h1 class="text-3xl font-bold text-blue-600 mt-4 tracking-tight">TrustQR</h1>
     </div>
 
-    <!-- App Logic Script -->
     <script>
-        lucide.createIcons();
-
-        let html5QrCode;
-        let currentCameraId = null;
-        let cameras = [];
-        let cameraIndex = 0;
-
-        const statusText = document.getElementById('statusText');
-        const warningModal = document.getElementById('warningModal');
-        const modalUrlText = document.getElementById('modalUrlText');
-        const proceedBtn = document.getElementById('proceedBtn');
-        const cancelBtn = document.getElementById('cancelBtn');
-        const toggleCameraBtn = document.getElementById('toggleCamera');
-
-        let pendingUrl = '';
-
-        function onScanSuccess(decodedText, decodedResult) {
-            // Stop scanner temporarily to prevent multiple triggers
-            if (html5QrCode && html5QrCode.isScanning) {
-                html5QrCode.pause();
-            }
-
-            // Check if it's a valid URL
-            let targetUrl = decodedText;
-            try {
-                // If it's a raw string, test if it parses as URL or prepend http if needed
-                if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-                    // Check if it looks like a domain or text, treat as search/text or format
-                    if (targetUrl.includes('.')) {
-                        targetUrl = 'https://' + targetUrl;
-                    }
-                }
-                
-                const parsed = new URL(targetUrl);
-
-                if (parsed.protocol === 'https:') {
-                    // Secure Link -> Direct Open
-                    statusText.innerHTML = `<span class="text-emerald-400 font-semibold">Redirecting securely...</span>`;
-                    window.location.href = targetUrl;
-                } else {
-                    // Insecure HTTP Link -> Show Warning Modal
-                    pendingUrl = targetUrl;
-                    modalUrlText.textContent = targetUrl;
-                    warningModal.classList.remove('hidden');
-                }
-            } catch (err) {
-                // Not a strict URL, treat as text or handle gracefully
-                statusText.innerHTML = `<span class="text-amber-400 font-semibold">Scanned Text: ${decodedText}</span>`;
-                setTimeout(() => {
-                    if (html5QrCode) html5QrCode.resume();
-                }, 3000);
-            }
-        }
-
-        // Modal Button Handlers
-        proceedBtn.addEventListener('click', () => {
-            warningModal.classList.add('hidden');
-            window.location.href = pendingUrl;
-        });
-
-        cancelBtn.addEventListener('click', () => {
-            warningModal.classList.add('hidden');
-            pendingUrl = '';
-            if (html5QrCode) {
-                html5QrCode.resume();
-                statusText.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Align QR code within the frame`;
-            }
-        });
-
-        // Initialize Camera Scanner
-        async function startScanner() {
-            html5QrCode = new Html5Qrcode("reader");
-            try {
-                cameras = await Html5Qrcode.getCameras();
-                if (cameras && cameras.length > 0) {
-                    // Prefer back camera if available
-                    let backCamera = cameras.find(cam => cam.label.toLowerCase().includes('back') || cam.label.toLowerCase().includes('rear'));
-                    currentCameraId = backCamera ? backCamera.id : cameras[cameras.length - 1].id;
-
-                    await startCameraStream(currentCameraId);
-                } else {
-                    statusText.textContent = "No cameras found on this device.";
-                }
-            } catch (err) {
-                console.error("Camera initialization error:", err);
-                statusText.textContent = "Camera permission denied or unavailable.";
-            }
-        }
-
-        async function startCameraStream(cameraId) {
-            try {
-                await html5QrCode.start(
-                    cameraId,
-                    {
-                        fps: 20,
-                        qrbox: { width: 240, height: 240 },
-                        aspectRatio: 1.0
-                    },
-                    onScanSuccess,
-                    (errorMessage) => {
-                        // Ignore frame-by-frame parsing errors to prevent console spam
-                    }
-                );
-            } catch (err) {
-                console.error("Failed to start scanner stream:", err);
-            }
-        }
-
-        // Switch Camera (Front/Back)
-        toggleCameraBtn.addEventListener('click', async () => {
-            if (cameras.length > 1) {
-                cameraIndex = (cameraIndex + 1) % cameras.length;
-                if (html5QrCode && html5QrCode.isScanning) {
-                    await html5QrCode.stop();
-                }
-                await startCameraStream(cameras[cameraIndex].id);
-            }
-        });
-
-        // Run scanner on load
-        window.addEventListener('load', () => {
-            startScanner();
-        });
+        // Redirect to Dashboard after 2 seconds
+        setTimeout(() => {
+            window.location.href = 'prezqr.html';
+        }, 2000);
     </script>
 </body>
 </html>
